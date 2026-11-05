@@ -80,14 +80,14 @@
             </div>
         {% endif %}
 
-        <!-- Sistema Global (Disponible para Todos) -->
+        <!-- Inventario Global (Disponible para Todos) -->
         <div class="col-md-{% if user.is_staff or user.is_superuser %}3{% else %}12{% endif %}">
             <div class="card shadow-sm border-0 h-100 bg-light">
                 <div class="card-body text-center p-4">
                     <div class="mb-3 text-info">
                         <i class="bi bi-speedometer2 fs-1"></i>
                     </div>
-                    <h5 class="card-title fw-bold">Sistema Global</h5>
+                    <h5 class="card-title fw-bold">Inventario Global</h5>
                     <p class="card-text text-muted small">Consulta el stock de productos distribuido en las tiendas y bodegas.</p>
                     <div class="d-grid gap-2 mt-3">
                         <a href="{% url 'inventario_global' %}" class="btn btn-info text-white btn-lg fw-semibold">Ver Inventario por Bodega</a>

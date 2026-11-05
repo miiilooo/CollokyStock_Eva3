@@ -1,4 +1,5 @@
 {% extends 'stock/base.html' %}
+{% load stock_extras %}
 
 {% block content %}
 <div class="container mt-4">
@@ -35,18 +36,20 @@
                                 </thead>
                                 <tbody>
                                     {% for producto in productos %}
-                                        {% if bodega in producto.bodegas.all or producto.bodega == bodega %}
-                                        <tr>
-                                            <td>
-                                                <strong>{{ producto.nombre }}</strong>
-                                                {% if producto.talla %}<br><small class="text-muted">Talla: {{ producto.talla }}</small>{% endif %}
-                                            </td>
-                                            <td><code>{{ producto.sku }}</code></td>
-                                            <td class="text-center">
-                                                <span class="badge bg-success fs-6">{{ producto.stock|default:0 }}</span>
-                                            </td>
-                                        </tr>
-                                        {% endif %}
+                                        {% with stock_val=stock_por_bodega|get_item:bodega.id|get_item:producto.id %}
+                                            {% if stock_val > 0 %}
+                                            <tr>
+                                                <td>
+                                                    <strong>{{ producto.nombre }}</strong>
+                                                    {% if producto.talla %}<br><small class="text-muted">Talla: {{ producto.talla }}</small>{% endif %}
+                                                </td>
+                                                <td><code>{{ producto.sku }}</code></td>
+                                                <td class="text-center">
+                                                    <span class="badge bg-success fs-6">{{ stock_val }}</span>
+                                                </td>
+                                            </tr>
+                                            {% endif %}
+                                        {% endwith %}
                                     {% empty %}
                                         <tr>
                                             <td colspan="3" class="text-center py-3 text-muted">No hay productos en esta bodega.</td>

@@ -135,12 +135,13 @@ def detalle_movimiento(request, pk):
 @login_required
 def registrar_movimiento(request):
     from stock.models import Bodega, Producto, Movimiento
+    from django.db.models import Sum
     productos = Producto.objects.all()
     bodegas = Bodega.objects.all()
     
     if request.method == 'POST':
-        tipo_raw = request.POST.get('tipo', 'ENTRADA')
-        tipo = tipo_raw.upper() if tipo_raw else 'ENTRADA'
+        tipo_raw = request.POST.get('tipo', 'TRASLADO')
+        tipo = tipo_raw.upper() if tipo_raw else 'TRASLADO'
         producto_id = request.POST.get('producto')
         bodega_origen_id = request.POST.get('bodega')
         bodega_destino_id = request.POST.get('bodega_destino')
@@ -148,53 +149,50 @@ def registrar_movimiento(request):
         
         try:
             cantidad = int(cantidad_str)
+            if cantidad <= 0:
+                messages.error(request, "La cantidad debe ser mayor a cero.")
+                return render(request, 'stock/form_movimiento.html', {'productos': productos, 'bodegas': bodegas})
+
             producto = Producto.objects.get(pk=producto_id)
             bodega_origen = Bodega.objects.get(pk=bodega_origen_id)
             
             bodega_dest_obj = None
             if bodega_destino_id and bodega_destino_id.strip():
                 bodega_dest_obj = Bodega.objects.get(pk=bodega_destino_id)
-            
-            if tipo == 'ENTRADA':
-                producto.stock += cantidad
-                producto.save()
-                producto.bodegas.add(bodega_origen)
-                
-                Movimiento.objects.create(
-                    tipo='ENTRADA',
-                    producto=producto,
-                    bodega=bodega_origen,
-                    bodega_destino=bodega_dest_obj,
-                    cantidad=cantidad
-                )
-            elif tipo == 'SALIDA' or tipo == 'TRASLADO':
-                if producto.stock >= cantidad:
-                    # Descontar del origen
-                    producto.stock -= cantidad
-                    producto.save()
-                else:
-                    messages.error(request, f"Stock insuficiente en la bodega de origen. Stock disponible: {producto.stock}")
+                if bodega_origen == bodega_dest_obj:
+                    messages.error(request, "La bodega de origen y destino no pueden ser la misma.")
                     return render(request, 'stock/form_movimiento.html', {'productos': productos, 'bodegas': bodegas})
-                
-                # Si hay bodega de destino, asociar y asegurar que quede reflejado en el destino
-                if bodega_dest_obj:
-                    producto.bodegas.add(bodega_dest_obj)
-                    # Si el modelo tuviera stock independiente por bodega se sumaría ahí;
-                    # al ser stock global, aseguramos que la bodega destino quede vinculada correctamente con las unidades trasladadas.
-                
-                Movimiento.objects.create(
-                    tipo='SALIDA',
-                    producto=producto,
-                    bodega=bodega_origen,
-                    bodega_destino=bodega_dest_obj,
-                    cantidad=cantidad
-                )
+
+            # Calcular stock actual en la bodega de origen de forma dinámica
+            out_qty = Movimiento.objects.filter(producto=producto, bodega=bodega_origen).aggregate(t=Sum('cantidad'))['t'] or 0
+            in_qty = Movimiento.objects.filter(producto=producto, bodega_destino=bodega_origen).aggregate(t=Sum('cantidad'))['t'] or 0
             
-            messages.success(request, f"¡Movimiento de {cantidad} unidades realizado con éxito!")
+            is_primary = (producto.bodegas.first() == bodega_origen) or (not Movimiento.objects.filter(producto=producto).exists() and bodega_origen in producto.bodegas.all())
+            stock_en_origen = (producto.stock if is_primary else 0) + in_qty - out_qty
+            
+            # Permitir la transferencia validando que haya stock suficiente
+            if stock_en_origen < cantidad:
+                messages.error(request, f"Stock insuficiente en la bodega de origen. Disponible: {stock_en_origen}")
+                return render(request, 'stock/form_movimiento.html', {'productos': productos, 'bodegas': bodegas})
+
+            # Registrar el movimiento de transferencia o salida
+            Movimiento.objects.create(
+                tipo='TRASLADO' if bodega_dest_obj else 'SALIDA',
+                producto=producto,
+                bodega=bodega_origen,
+                bodega_destino=bodega_dest_obj,
+                cantidad=cantidad
+            )
+
+            # Vincular explícitamente el producto a la bodega destino en la relación ManyToMany
+            if bodega_dest_obj:
+                producto.bodegas.add(bodega_dest_obj)
+            
+            messages.success(request, f"¡Transferencia de {cantidad} unidades realizada correctamente!")
             return redirect('lista_movimientos')
             
         except Exception as e:
-            messages.error(request, f"Error al registrar el movimiento: {e}")
+            messages.error(request, f"Error al procesar el movimiento: {e}")
             return render(request, 'stock/form_movimiento.html', {'productos': productos, 'bodegas': bodegas})
             
     return render(request, 'stock/form_movimiento.html', {'productos': productos, 'bodegas': bodegas})
@@ -239,12 +237,38 @@ def eliminar_usuario(request, pk):
 
 @login_required
 def inventario_global(request):
+    from stock.models import Bodega, Producto, Movimiento
+    from django.db.models import Sum
+
     bodegas = Bodega.objects.all()
     productos = Producto.objects.all()
-    return render(request, 'stock/inventario_global.html', {'bodegas': bodegas, 'productos': productos})
+    stock_por_bodega = {}
 
-custom_login = LoginView.as_view(template_name='stock/login.html')
+    for b in bodegas:
+        stock_por_bodega[b.id] = {}
+        for p in productos:
+            # Salidas desde esta bodega
+            out_qty = Movimiento.objects.filter(producto=p, bodega=b).aggregate(t=Sum('cantidad'))['t'] or 0
+            # Entradas hacia esta bodega (por traslados)
+            in_qty = Movimiento.objects.filter(producto=p, bodega_destino=b).aggregate(t=Sum('cantidad'))['t'] or 0
+            
+            # ¿Es la bodega principal donde se creó el producto inicialmente?
+            is_primary = (p.bodegas.first() == b)
+            base_stock = p.stock if is_primary else 0
+            
+            calculated = base_stock + in_qty - out_qty
+            if calculated < 0:
+                calculated = 0
+                
+            # Guardar en el diccionario si tiene stock o está vinculado
+            if calculated > 0 or b in p.bodegas.all():
+                stock_por_bodega[b.id][p.id] = calculated
 
+    return render(request, 'stock/inventario_global.html', {
+        'bodegas': bodegas,
+        'productos': productos,
+        'stock_por_bodega': stock_por_bodega
+    })
 @login_required
 def custom_logout(request):
     logout(request)
@@ -252,20 +276,38 @@ def custom_logout(request):
 
 
 def obtener_bodegas_producto(request, producto_id):
-    from stock.models import Producto, Bodega
+    from stock.models import Producto, Bodega, Movimiento
     from django.http import JsonResponse
+    from django.db.models import Sum
     try:
         producto = Producto.objects.get(pk=producto_id)
-        bodegas_origen = list(producto.bodegas.values('id', 'nombre', 'ubicacion'))
+        bodegas = Bodega.objects.all()
+        bodegas_con_stock = []
+
+        for b in bodegas:
+            # Calcular stock real actual en esta bodega
+            out_qty = Movimiento.objects.filter(producto=producto, bodega=b).aggregate(t=Sum('cantidad'))['t'] or 0
+            in_qty = Movimiento.objects.filter(producto=producto, bodega_destino=b).aggregate(t=Sum('cantidad'))['t'] or 0
+            
+            is_primary = (producto.bodegas.first() == b) or (not Movimiento.objects.filter(producto=producto).exists() and b in producto.bodegas.all())
+            stock_actual = (producto.stock if is_primary else 0) + in_qty - out_qty
+
+            # Solo incluimos la bodega como origen si tiene stock mayor a 0
+            if stock_actual > 0:
+                bodegas_con_stock.append({
+                    'id': b.id,
+                    'nombre': f"{b.nombre} (Stock disponible: {stock_actual})",
+                    'ubicacion': b.ubicacion or ''
+                })
+
         todas_bodegas = list(Bodega.objects.values('id', 'nombre', 'ubicacion'))
-        
-        # Excluir las bodegas de origen para que el destino sean las demás
-        origen_ids = [b['id'] for b in bodegas_origen]
-        bodegas_destino = [b for b in todas_bodegas if b['id'] not in origen_ids]
-        
+
         return JsonResponse({
-            'origen': bodegas_origen,
-            'destino': bodegas_destino
+            'origen': bodegas_con_stock,
+            'destino': todas_bodegas
         })
     except Producto.DoesNotExist:
         return JsonResponse({'error': 'Producto no encontrado'}, status=404)
+# Definición permanente de custom_login para autenticación
+from django.contrib.auth.views import LoginView
+custom_login = LoginView.as_view(template_name='stock/login.html')

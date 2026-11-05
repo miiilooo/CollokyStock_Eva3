@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>COLLOKY - Gestión de Bodega</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h2 { color: #333; }
+        form p { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; }
+        input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        button { background: #28a745; color: white; border: none; padding: 10px 15px; font-size: 16px; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #218838; }
+        .back-link { display: inline-block; margin-top: 15px; text-decoration: none; color: #007bff; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>{% if bodega %}Editar Bodega{% else %}Registrar Nueva Bodega{% endif %}</h2>
+        <form method="post">
+            {% csrf_token %}
+            <p>
+                <label for="nombre">Nombre de la Bodega:</label>
+                <input type="text" id="nombre" name="nombre" value="{% if bodega %}{{ bodega.nombre }}{% endif %}" required>
+            </p>
+            <p>
+                <label for="ubicacion">Ubicación:</label>
+                <input type="text" id="ubicacion" name="ubicacion" value="{% if bodega %}{{ bodega.ubicacion }}{% endif %}" required>
+            </p>
+            <button type="submit">Guardar Bodega</button>
+        </form>
+        <br>
+        <a class="back-link" href="{% url 'lista_bodegas' %}">← Volver a Bodegas</a>
+    </div>
+
+
+
+<!-- Script global de validación de SKU y campos obligatorios -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const skuInputs = document.querySelectorAll('input[name="sku"], input[id*="sku"], input[id*="SKU"]');
+    skuInputs.forEach(skuInput => {
+        skuInput.setAttribute('maxlength', '9');
+        skuInput.setAttribute('placeholder', '123456-78');
+        skuInput.setAttribute('required', 'required');
+        
+        skuInput.addEventListener('beforeinput', function(e) {
+            if (e.data && /[^0-9]/.test(e.data)) {
+                e.preventDefault();
+            }
+        });
+
+        skuInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 6) {
+                value = value.slice(0, 6) + '-' + value.slice(6, 8);
+            }
+            e.target.value = value;
+        });
+    });
+});
+</script>
+
+<!-- script-sku-mask -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const forms = document.querySelectorAll('form');
+    forms.forEach(form => {
+        const skuInput = form.querySelector('input[name="sku"], input[id*="sku"]');
+        if (skuInput) {
+            skuInput.setAttribute('maxlength', '9');
+            skuInput.setAttribute('placeholder', '123456-78');
+            skuInput.setAttribute('required', 'required');
+            skuInput.setAttribute('pattern', '\\d{6}-\\d{2}');
+
+            skuInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length > 6) {
+                    value = value.slice(0, 6) + '-' + value.slice(6, 8);
+                }
+                e.target.value = value;
+            });
+
+            form.addEventListener('submit', function(e) {
+                const val = skuInput.value.trim();
+                const regex = /^\d{6}-\d{2}$/;
+                if (!regex.test(val)) {
+                    e.preventDefault();
+                    alert('Error: El SKU es obligatorio y debe cumplir estrictamente con el formato XXXXXX-XX (ej: 123456-78).');
+                    skuInput.focus();
+                }
+            });
+        }
+    });
+});
+</script>
+
+<!-- script-campos-requeridos -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fieldsToCheck = ['stock', 'precio', 'bodega', 'quantity', 'price', 'warehouse', 'stock_actual', 'precio_venta', 'cantidad'];
+    fieldsToCheck.forEach(name => {
+        const field = document.querySelector('input[name="' + name + '"], select[name="' + name + '"]');
+        if (field) {
+            field.setAttribute('required', 'required');
+        }
+    });
+});
+</script>
+</body>
+
+
+
+
+</html>

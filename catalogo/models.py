@@ -6,7 +6,7 @@ class Producto(models.Model):
     nombre = models.CharField(max_length=100)
     
     # Campo para el precio del producto
-    precio = models.IntegerField()
+    precio = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False)
     
     # Campo booleano para indicar disponibilidad
     disponible = models.BooleanField(default=True)

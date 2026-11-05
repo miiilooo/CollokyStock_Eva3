@@ -25,8 +25,7 @@ SECRET_KEY = 'django-insecure-0dxzghehe1+@)%a2+&gne@-v+$750rlmhq++kvxh(duxd!2m^c
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = ['44.195.12.154', '127.0.0.1', 'localhost', '*']
 
 # Application definition
 
@@ -37,7 +36,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'catalogo', # App de catálogo de productos
+    'catalogo',
+    'stock',
+
 ]
 
 MIDDLEWARE = [
@@ -116,3 +117,24 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'static'
+
+LOGIN_REDIRECT_URL = 'dashboard'
+LOGOUT_REDIRECT_URL = 'login'
+
+# Configuración de recuperación de contraseña por correo
+LOGIN_REDIRECT_URL = 'dashboard'
+LOGOUT_REDIRECT_URL = 'login'
+
+# Configuración de seguridad CSRF para IP del servidor
+CSRF_TRUSTED_ORIGINS = ['http://44.195.12.154', 'https://44.195.12.154']
+# Configuración SMTP de Gmail para producción
+
+# Configuración SMTP de Gmail para producción
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'emiwrld001@gmail.com'
+EMAIL_HOST_PASSWORD = 'uzvxiveijitfheen'
+DEFAULT_FROM_EMAIL = 'emiwrld001@gmail.com'

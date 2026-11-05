@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>COLLOKY - Bodegas</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #333; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn { padding: 8px 15px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 14px; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn:hover { opacity: 0.9; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+        th { background: #343a40; color: white; }
+        .back-link { display: inline-block; margin-top: 20px; text-decoration: none; color: #007bff; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="top-bar">
+            <h1>Bodegas</h1>
+            <div>
+                <a href="{% url 'dashboard' %}" class="btn btn-primary">Dashboard</a>
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <form method="get" style="display: flex; gap: 10px;">
+                <input type="text" name="q" placeholder="Buscar bodega..." style="padding: 8px; width: 250px; border: 1px solid #ccc; border-radius: 4px;">
+                <button type="submit" class="btn btn-primary">Buscar</button>
+            </form>
+
+            {% if not es_promotor %}
+                <a href="{% url 'crear_bodega' %}" class="btn btn-success">+ Nueva Bodega</a>
+            {% endif %}
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Ubicación</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for bodega in bodegas %}
+                <tr>
+                    <td>{{ bodega.nombre }}</td>
+                    <td>{{ bodega.ubicacion }}</td>
+                    <td>
+                        {% if not es_promotor %}
+                            <a href="{% url 'editar_bodega' bodega.pk %}" style="color: #ffc107; margin-right: 10px; text-decoration: none; font-weight: bold;">Editar</a>
+                            <a href="{% url 'eliminar_bodega' bodega.pk %}" style="color: #dc3545; text-decoration: none; font-weight: bold;" onclick="return confirm('¿Estás seguro de eliminar esta bodega?');">Eliminar</a>
+                        {% else %}
+                            <span style="color: #888; font-style: italic;">Solo lectura</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3" style="text-align: center; color: #777;">No hay bodegas registradas.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <br>
+        <a class="back-link" href="{% url 'dashboard' %}">← Volver al Dashboard</a>
+    </div>
+
+
+
+<!-- Script global de validación de SKU y campos obligatorios -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const skuInputs = document.querySelectorAll('input[name="sku"], input[id*="sku"], input[id*="SKU"]');
+    skuInputs.forEach(skuInput => {
+        skuInput.setAttribute('maxlength', '9');
+        skuInput.setAttribute('placeholder', '123456-78');
+        skuInput.setAttribute('required', 'required');
+        
+        skuInput.addEventListener('beforeinput', function(e) {
+            if (e.data && /[^0-9]/.test(e.data)) {
+                e.preventDefault();
+            }
+        });
+
+        skuInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 6) {
+                value = value.slice(0, 6) + '-' + value.slice(6, 8);
+            }
+            e.target.value = value;
+        });
+    });
+});
+</script>
+
+<!-- script-sku-mask -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const forms = document.querySelectorAll('form');
+    forms.forEach(form => {
+        const skuInput = form.querySelector('input[name="sku"], input[id*="sku"]');
+        if (skuInput) {
+            skuInput.setAttribute('maxlength', '9');
+            skuInput.setAttribute('placeholder', '123456-78');
+            skuInput.setAttribute('required', 'required');
+            skuInput.setAttribute('pattern', '\\d{6}-\\d{2}');
+
+            skuInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length > 6) {
+                    value = value.slice(0, 6) + '-' + value.slice(6, 8);
+                }
+                e.target.value = value;
+            });
+
+            form.addEventListener('submit', function(e) {
+                const val = skuInput.value.trim();
+                const regex = /^\d{6}-\d{2}$/;
+                if (!regex.test(val)) {
+                    e.preventDefault();
+                    alert('Error: El SKU es obligatorio y debe cumplir estrictamente con el formato XXXXXX-XX (ej: 123456-78).');
+                    skuInput.focus();
+                }
+            });
+        }
+    });
+});
+</script>
+
+<!-- script-campos-requeridos -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fieldsToCheck = ['stock', 'precio', 'bodega', 'quantity', 'price', 'warehouse', 'stock_actual', 'precio_venta', 'cantidad'];
+    fieldsToCheck.forEach(name => {
+        const field = document.querySelector('input[name="' + name + '"], select[name="' + name + '"]');
+        if (field) {
+            field.setAttribute('required', 'required');
+        }
+    });
+});
+</script>
+</body>
+
+
+
+
+</html>

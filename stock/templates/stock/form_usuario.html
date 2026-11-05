@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>COLLOKY - Formulario de Usuario</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; }
+        .container { max-width: 500px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h2 { color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+        label { display: block; margin-top: 15px; font-weight: bold; color: #555; }
+        input[type="text"], input[type="email"], input[type="password"], select { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { margin-top: 20px; padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; width: 100%; }
+        button:hover { background: #0056b3; }
+        .back-link { display: inline-block; margin-top: 15px; text-decoration: none; color: #007bff; font-weight: bold; text-align: center; width: 100%; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>{% if target_user %}Editar Usuario{% else %}Registrar Nuevo Usuario{% endif %}</h2>
+        <form method="POST">
+            {% csrf_token %}
+            <label>Nombre de Usuario:</label>
+            <input type="text" name="username" value="{{ target_user.username }}" required>
+
+            <label>Correo Electrónico:</label>
+            <input type="email" name="email" value="{{ target_user.email }}">
+
+            <label>Contraseña {% if target_user %}(Dejar en blanco para mantener la actual){% endif %}:</label>
+            <input type="password" name="password" {% if not target_user %}required{% endif %}>
+
+            <label>Cargo:</label>
+            <select name="cargo" required>
+                <option value="promotor" {% if target_user and not target_user.is_staff %}selected{% endif %}>Promotor</option>
+                <option value="supervisor" {% if target_user and target_user.is_staff %}selected{% endif %}>Supervisor</option>
+            </select>
+
+            <button type="submit">Guardar Usuario</button>
+        </form>
+        <a class="back-link" href="{% url 'lista_usuarios' %}">← Volver al listado de usuarios</a>
+    </div>
+
+
+
+<!-- Script global de validación de SKU y campos obligatorios -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const skuInputs = document.querySelectorAll('input[name="sku"], input[id*="sku"], input[id*="SKU"]');
+    skuInputs.forEach(skuInput => {
+        skuInput.setAttribute('maxlength', '9');
+        skuInput.setAttribute('placeholder', '123456-78');
+        skuInput.setAttribute('required', 'required');
+        
+        skuInput.addEventListener('beforeinput', function(e) {
+            if (e.data && /[^0-9]/.test(e.data)) {
+                e.preventDefault();
+            }
+        });
+
+        skuInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 6) {
+                value = value.slice(0, 6) + '-' + value.slice(6, 8);
+            }
+            e.target.value = value;
+        });
+    });
+});
+</script>
+
+<!-- script-sku-mask -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const forms = document.querySelectorAll('form');
+    forms.forEach(form => {
+        const skuInput = form.querySelector('input[name="sku"], input[id*="sku"]');
+        if (skuInput) {
+            skuInput.setAttribute('maxlength', '9');
+            skuInput.setAttribute('placeholder', '123456-78');
+            skuInput.setAttribute('required', 'required');
+            skuInput.setAttribute('pattern', '\\d{6}-\\d{2}');
+
+            skuInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length > 6) {
+                    value = value.slice(0, 6) + '-' + value.slice(6, 8);
+                }
+                e.target.value = value;
+            });
+
+            form.addEventListener('submit', function(e) {
+                const val = skuInput.value.trim();
+                const regex = /^\d{6}-\d{2}$/;
+                if (!regex.test(val)) {
+                    e.preventDefault();
+                    alert('Error: El SKU es obligatorio y debe cumplir estrictamente con el formato XXXXXX-XX (ej: 123456-78).');
+                    skuInput.focus();
+                }
+            });
+        }
+    });
+});
+</script>
+
+<!-- script-campos-requeridos -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fieldsToCheck = ['stock', 'precio', 'bodega', 'quantity', 'price', 'warehouse', 'stock_actual', 'precio_venta', 'cantidad'];
+    fieldsToCheck.forEach(name => {
+        const field = document.querySelector('input[name="' + name + '"], select[name="' + name + '"]');
+        if (field) {
+            field.setAttribute('required', 'required');
+        }
+    });
+});
+</script>
+</body>
+
+
+
+
+</html>

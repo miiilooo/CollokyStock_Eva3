@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>COLLOKY - Detalle de Movimiento de Stock</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h2 { color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+        p { font-size: 16px; color: #555; margin-bottom: 12px; }
+        strong { color: #333; }
+        .back-link { display: inline-block; margin-top: 20px; text-decoration: none; color: #007bff; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Detalles del Movimiento de Stock</h2>
+        <p><strong>Fecha y Hora:</strong> {{ movimiento.fecha }}< <a href="{% url \'detalle_movimiento\' transaccion.pk %}" class="btn" style="padding: 3px 8px; font-size: 12px; margin-left: 8px; background: #007bff; color: white; text-decoration: none; border-radius: 4px;">Ver Detalles</a> /p>
+        <p><strong>Tipo de Movimiento:</strong> {{ movimiento.get_tipo_display|default:movimiento.tipo }}</p>
+        <p><strong>Cantidad:</strong> {{ movimiento.cantidad }}</p>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        <h3>Información del Producto</h3>
+        <p><strong>Modelo:</strong> {{ movimiento.producto.nombre }}</p>
+        <p><strong>SKU:</strong> {{ movimiento.producto.sku }}</p>
+        <p><strong>Rango de Tallas:</strong> {{ movimiento.producto.talla }}</p>
+        <p><strong>Precio:</strong> ${{ movimiento.producto.precio }}</p>
+        <br>
+        <a class="back-link" href="{% url 'lista_transacciones' %}">← Volver a Movimiento de Stock</a>
+    </div>
+
+
+
+<!-- Script global de validación de SKU y campos obligatorios -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const skuInputs = document.querySelectorAll('input[name="sku"], input[id*="sku"], input[id*="SKU"]');
+    skuInputs.forEach(skuInput => {
+        skuInput.setAttribute('maxlength', '9');
+        skuInput.setAttribute('placeholder', '123456-78');
+        skuInput.setAttribute('required', 'required');
+        
+        skuInput.addEventListener('beforeinput', function(e) {
+            if (e.data && /[^0-9]/.test(e.data)) {
+                e.preventDefault();
+            }
+        });
+
+        skuInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 6) {
+                value = value.slice(0, 6) + '-' + value.slice(6, 8);
+            }
+            e.target.value = value;
+        });
+    });
+});
+</script>
+
+<!-- script-sku-mask -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const forms = document.querySelectorAll('form');
+    forms.forEach(form => {
+        const skuInput = form.querySelector('input[name="sku"], input[id*="sku"]');
+        if (skuInput) {
+            skuInput.setAttribute('maxlength', '9');
+            skuInput.setAttribute('placeholder', '123456-78');
+            skuInput.setAttribute('required', 'required');
+            skuInput.setAttribute('pattern', '\\d{6}-\\d{2}');
+
+            skuInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length > 6) {
+                    value = value.slice(0, 6) + '-' + value.slice(6, 8);
+                }
+                e.target.value = value;
+            });
+
+            form.addEventListener('submit', function(e) {
+                const val = skuInput.value.trim();
+                const regex = /^\d{6}-\d{2}$/;
+                if (!regex.test(val)) {
+                    e.preventDefault();
+                    alert('Error: El SKU es obligatorio y debe cumplir estrictamente con el formato XXXXXX-XX (ej: 123456-78).');
+                    skuInput.focus();
+                }
+            });
+        }
+    });
+});
+</script>
+
+<!-- script-campos-requeridos -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fieldsToCheck = ['stock', 'precio', 'bodega', 'quantity', 'price', 'warehouse', 'stock_actual', 'precio_venta', 'cantidad'];
+    fieldsToCheck.forEach(name => {
+        const field = document.querySelector('input[name="' + name + '"], select[name="' + name + '"]');
+        if (field) {
+            field.setAttribute('required', 'required');
+        }
+    });
+});
+</script>
+</body>
+
+
+
+
+</html>

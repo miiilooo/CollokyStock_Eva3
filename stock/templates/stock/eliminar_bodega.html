@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Eliminar Bodega</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container mt-5" style="max-width: 500px;">
+        <div class="card shadow-sm border-danger">
+            <div class="card-body text-center">
+                <h3 class="text-danger mb-3">Eliminar Bodega</h3>
+                <p>¿Estás seguro de que deseas eliminar la bodega <strong>{{ bodega.nombre }}</strong>?</p>
+                <form method="POST">
+                    {% csrf_token %}
+                    <a href="{% url 'lista_bodegas' %}" class="btn btn-secondary">Cancelar</a>
+                    <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+
+<!-- Script global de validación de SKU y campos obligatorios -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const skuInputs = document.querySelectorAll('input[name="sku"], input[id*="sku"], input[id*="SKU"]');
+    skuInputs.forEach(skuInput => {
+        skuInput.setAttribute('maxlength', '9');
+        skuInput.setAttribute('placeholder', '123456-78');
+        skuInput.setAttribute('required', 'required');
+        
+        skuInput.addEventListener('beforeinput', function(e) {
+            if (e.data && /[^0-9]/.test(e.data)) {
+                e.preventDefault();
+            }
+        });
+
+        skuInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 6) {
+                value = value.slice(0, 6) + '-' + value.slice(6, 8);
+            }
+            e.target.value = value;
+        });
+    });
+});
+</script>
+
+<!-- script-sku-mask -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const forms = document.querySelectorAll('form');
+    forms.forEach(form => {
+        const skuInput = form.querySelector('input[name="sku"], input[id*="sku"]');
+        if (skuInput) {
+            skuInput.setAttribute('maxlength', '9');
+            skuInput.setAttribute('placeholder', '123456-78');
+            skuInput.setAttribute('required', 'required');
+            skuInput.setAttribute('pattern', '\\d{6}-\\d{2}');
+
+            skuInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length > 6) {
+                    value = value.slice(0, 6) + '-' + value.slice(6, 8);
+                }
+                e.target.value = value;
+            });
+
+            form.addEventListener('submit', function(e) {
+                const val = skuInput.value.trim();
+                const regex = /^\d{6}-\d{2}$/;
+                if (!regex.test(val)) {
+                    e.preventDefault();
+                    alert('Error: El SKU es obligatorio y debe cumplir estrictamente con el formato XXXXXX-XX (ej: 123456-78).');
+                    skuInput.focus();
+                }
+            });
+        }
+    });
+});
+</script>
+
+<!-- script-campos-requeridos -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fieldsToCheck = ['stock', 'precio', 'bodega', 'quantity', 'price', 'warehouse', 'stock_actual', 'precio_venta', 'cantidad'];
+    fieldsToCheck.forEach(name => {
+        const field = document.querySelector('input[name="' + name + '"], select[name="' + name + '"]');
+        if (field) {
+            field.setAttribute('required', 'required');
+        }
+    });
+});
+</script>
+</body>
+
+
+
+
+</html>

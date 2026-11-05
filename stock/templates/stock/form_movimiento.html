@@ -1,0 +1,118 @@
+{% extends 'stock/base.html' %}
+
+{% block content %}
+<div class="row justify-content-center mt-4">
+    <div class="col-md-6">
+        <div class="card shadow border-0 p-4">
+            <h2 class="fw-bold mb-4 text-dark">Registrar Movimiento de Stock</h2>
+            
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Tipo de Movimiento</label>
+                    <select name="tipo" id="tipoMovimiento" class="form-select" required onchange="toggleBodegaDestino()">
+                        <option value="" selected disabled>Seleccione tipo de movimiento</option>
+                        <option value="ENTRADA">Entrada</option>
+                        <option value="SALIDA">Salida</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Producto</label>
+                    <select name="producto" id="id_producto" class="form-select" required>
+                        <option value="" selected disabled>Seleccione un producto</option>
+                        {% for prod in productos %}
+                        <option value="{{ prod.id }}">{{ prod.nombre }} (SKU: {{ prod.sku }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Bodega de Origen</label>
+                    <select name="bodega" id="id_bodega_origen" class="form-select" required>
+                        <option value="" selected disabled>Primero seleccione un producto</option>
+                    </select>
+                </div>
+
+                <!-- Campo dinámico para la bodega de destino -->
+                <div class="mb-3" id="divBodegaDestino">
+                    <label class="form-label fw-semibold">Bodega de Destino</label>
+                    <select name="bodega_destino" id="bodegaDestinoSelect" class="form-select">
+                        <option value="" selected disabled>Seleccione la bodega de destino</option>
+                    </select>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">Cantidad</label>
+                    <input type="number" name="cantidad" class="form-control" min="1" placeholder="Ingrese la cantidad" required>
+                </div>
+
+                <div class="d-grid gap-2 mb-3">
+                    <button type="submit" class="btn btn-primary btn-lg">Guardar y Ejecutar Transacción</button>
+                </div>
+
+                <div class="text-center">
+                    <a href="{% url 'lista_movimientos' %}" class="text-decoration-none text-muted">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('id_producto').addEventListener('change', function() {
+    let productoId = this.value;
+    let origenSelect = document.getElementById('id_bodega_origen');
+    let destinoSelect = document.getElementById('bodegaDestinoSelect');
+    
+    if(!productoId) return;
+    
+    origenSelect.innerHTML = '<option value="" selected disabled>Cargando bodega de origen...</option>';
+    destinoSelect.innerHTML = '<option value="" selected disabled>Cargando bodegas de destino...</option>';
+    
+    fetch(`/productos/${productoId}/bodegas-ajax/`)
+        .then(response => response.json())
+        .then(data => {
+            origenSelect.innerHTML = '<option value="" selected disabled>Seleccione la bodega de origen</option>';
+            destinoSelect.innerHTML = '<option value="" selected disabled>Seleccione la bodega de destino</option>';
+            
+            // Cargar bodega de origen exclusiva del producto
+            if(data.origen && data.origen.length > 0) {
+                data.origen.forEach(b => {
+                    origenSelect.innerHTML += `<option value="${b.id}">${b.nombre} ${b.ubicacion ? '('+b.ubicacion+')' : ''}</option>`;
+                });
+            } else {
+                origenSelect.innerHTML = '<option value="" disabled>El producto no tiene bodegas asignadas</option>';
+            }
+            
+            // Cargar las demás bodegas como destino (excluyendo origen)
+            if(data.destino && data.destino.length > 0) {
+                data.destino.forEach(b => {
+                    destinoSelect.innerHTML += `<option value="${b.id}">${b.nombre} ${b.ubicacion ? '('+b.ubicacion+')' : ''}</option>`;
+                });
+            } else {
+                destinoSelect.innerHTML = '<option value="" disabled>No hay otras bodegas disponibles</option>';
+            }
+        })
+        .catch(err => {
+            console.error('Error al cargar bodegas:', err);
+        });
+});
+
+function toggleBodegaDestino() {
+    const tipo = document.getElementById('tipoMovimiento').value;
+    const divDestino = document.getElementById('divBodegaDestino');
+    const selectDestino = document.getElementById('bodegaDestinoSelect');
+    
+    if (tipo === 'SALIDA') {
+        divDestino.classList.remove('d-none');
+        selectDestino.required = true;
+    } else {
+        divDestino.classList.add('d-none');
+        selectDestino.required = false;
+        selectDestino.value = '';
+    }
+}
+</script>
+{% endblock %}

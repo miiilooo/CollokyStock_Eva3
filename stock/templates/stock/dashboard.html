@@ -1,0 +1,100 @@
+{% extends 'stock/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            {% if user.is_superuser %}
+                <h2 class="fw-bold text-dark mb-0">Panel Administrador - COLLOKY</h2>
+            {% elif user.is_staff %}
+                <h2 class="fw-bold text-dark mb-0">Panel Supervisor - COLLOKY</h2>
+            {% else %}
+                <h2 class="fw-bold text-dark mb-0">Panel Promotor - COLLOKY</h2>
+            {% endif %}
+        </div>
+        <div>
+            {% if user.is_superuser %}
+                <span class="badge bg-danger fs-6 p-2">Cargo: Administrador</span>
+            {% elif user.is_staff %}
+                <span class="badge bg-primary fs-6 p-2">Cargo: Supervisor</span>
+            {% else %}
+                <span class="badge bg-secondary fs-6 p-2">Cargo: Promotor</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Tarjetas de Acceso Rápido -->
+    <div class="row g-4 mb-5">
+        {% if user.is_staff or user.is_superuser %}
+            <!-- Mantenedores (Solo Supervisores / Administradores) -->
+            <div class="col-md-3">
+                <div class="card shadow-sm border-0 h-100 bg-light">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3 text-primary">
+                            <i class="bi bi-box-seam fs-1"></i>
+                        </div>
+                        <h5 class="card-title fw-bold">Mantenedores</h5>
+                        <p class="card-text text-muted small">Gestión de productos y bodegas del sistema.</p>
+                        <div class="d-grid gap-2 mt-3">
+                            <a href="{% url 'lista_productos' %}" class="btn btn-outline-primary btn-sm">Productos</a>
+                            <a href="{% url 'lista_bodegas' %}" class="btn btn-outline-primary btn-sm">Bodegas</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transacciones (Solo Supervisores / Administradores) -->
+            <div class="col-md-3">
+                <div class="card shadow-sm border-0 h-100 bg-light">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3 text-success">
+                            <i class="bi bi-arrow-left-right fs-1"></i>
+                        </div>
+                        <h5 class="card-title fw-bold">Transacciones</h5>
+                        <p class="card-text text-muted small">Registro de movimientos de stock y trazabilidad.</p>
+                        <div class="d-grid gap-2 mt-3">
+                            <a href="{% url 'lista_movimientos' %}" class="btn btn-outline-success btn-sm">Ver Movimientos</a>
+                            <a href="{% url 'registrar_movimiento' %}" class="btn btn-success btn-sm">Registrar Movimiento</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        {% if user.is_superuser %}
+            <!-- Gestión de Usuarios (Solo Administrador) -->
+            <div class="col-md-3">
+                <div class="card shadow-sm border-0 h-100 bg-light">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3 text-warning">
+                            <i class="bi bi-people fs-1"></i>
+                        </div>
+                        <h5 class="card-title fw-bold">Usuarios</h5>
+                        <p class="card-text text-muted small">Administración de cuentas y credenciales.</p>
+                        <div class="d-grid gap-2 mt-3">
+                            <a href="{% url 'lista_usuarios' %}" class="btn btn-outline-warning btn-sm text-dark">Gestionar Usuarios</a>
+                            <a href="{% url 'crear_usuario' %}" class="btn btn-warning btn-sm text-dark">Nuevo Usuario</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Sistema Global (Disponible para Todos) -->
+        <div class="col-md-{% if user.is_staff or user.is_superuser %}3{% else %}12{% endif %}">
+            <div class="card shadow-sm border-0 h-100 bg-light">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3 text-info">
+                        <i class="bi bi-speedometer2 fs-1"></i>
+                    </div>
+                    <h5 class="card-title fw-bold">Sistema Global</h5>
+                    <p class="card-text text-muted small">Consulta el stock de productos distribuido en las tiendas y bodegas.</p>
+                    <div class="d-grid gap-2 mt-3">
+                        <a href="{% url 'inventario_global' %}" class="btn btn-info text-white btn-lg fw-semibold">Ver Inventario por Bodega</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
